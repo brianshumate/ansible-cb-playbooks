@@ -1,0 +1,38 @@
+{error_logger_mf_dir, "/opt/couchbase/var/lib/couchbase/logs"}.
+{path_config_bindir, "/opt/couchbase/bin"}.
+{path_config_etcdir, "/opt/couchbase/etc/couchbase"}.
+{path_config_libdir, "/opt/couchbase/lib"}.
+{path_config_datadir, "/opt/couchbase/var/lib/couchbase"}.
+{path_config_tmpdir, "/opt/couchbase/var/lib/couchbase/tmp"}.
+{path_config_secdir, "/opt/couchbase/etc/security"}.
+
+{nodefile, "/opt/couchbase/var/lib/couchbase/couchbase-server.node"}.
+
+{loglevel_default, critical}.
+{loglevel_couchdb, critical}.
+{loglevel_ns_server, critical}.
+{loglevel_critical_logger, critical}.
+{loglevel_user, critical}.
+{loglevel_menelaus, critical}.
+{loglevel_ns_doctor, critical}.
+{loglevel_stats, critical}.
+{loglevel_rebalance, critical}.
+{loglevel_cluster, critical}.
+{loglevel_views, critical}.
+{loglevel_mapreduce_criticals, critical}.
+{loglevel_xdcr, critical}.
+{loglevel_xdcr_trace, critical}.
+{loglevel_access, critical}.
+
+{disk_sink_opts,
+ [{rotation, [{compress, true},
+              {size, 41943040},
+              {num_files, 10},
+              {buffer_size_max, 52428800}]}]}.
+
+{disk_sink_opts_xdcr_trace,
+ [{rotation, [{compress, false},
+              {size, 83886080},
+              {num_files, 5}]}]}.
+
+{net_kernel_verbosity, 10}.

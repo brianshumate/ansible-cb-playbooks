@@ -1,0 +1,49 @@
+---
+# File: _wipe_cluster.yml
+# Ansible playbook to uninstall Couchbase Server software and remove data
+
+# ! ! ! W A R N I N G ! ! !
+# 
+# THIS PLAYBOOK PERFORMS DESTRUCTIVE OPERATIONS AND SHOULD BE EXECUTED ONLY IN
+# DEVELOPMENT AND TESTING SITUATIONS AFTER ENSURING ANY DATA IN THE EXISTING
+# CLUSTER IS BACKED UP OR OTHERWISE PRESERVED!
+#
+# ! ! ! W A R N I N G ! ! !
+
+- hosts: cluster_nodes
+  gather_facts: True
+  sudo: True
+  vars_prompt:
+    confirm: "WARNING: REMOVE COUCHBASE SERVER SOFTWARE PACKAGE AND DATA (Yes/No)?"
+  vars:
+    couchbase_server_config_path: /opt/couchbase/var/lib/couchbase/config
+    couchbase_server_data_path: /opt/couchbase/var/lib/couchbase/data
+    couchbase_server_index_path: /opt/couchbase/var/lib/couchbase/index
+  tasks:
+
+  - name: Skipping...
+    fail: msg="Halting playbook execution"
+    when: confirm != "Yes"
+
+  - name: Stop Couchbase Server
+    service: "name=couchbase-server state=stopped"
+
+  - name: Uninstall Couchbase Server
+    apt: name=couchbase-server state=absent
+    when: ansible_os_family == "Debian" and confirm == "Yes"
+
+  - name: Uninstall Couchbase Server
+    yum: name=couchbase-server state=absent
+    when: ansible_os_family == "RedHat" and confirm == "Yes"
+
+  - name: Remove configuration files
+    file: "name={{ couchbase_server_config_path }}/* state=absent"
+    when: confirm == "Yes"
+
+  - name: Remove data files
+    file: "name={{ couchbase_server_data_path }}/* state=absent"
+    when: confirm == "Yes"
+
+  - name: Remove index files
+    file: "name={{ couchbase_server_index_path }}/* state=absent"
+    when: confirm == "Yes"

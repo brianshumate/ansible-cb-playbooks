@@ -1,0 +1,10 @@
+---
+# File: _install_static_config.yml
+# Example Ansible playbook to install a static_config file
+
+- hosts: cluster_nodes
+  sudo: True
+
+  tasks:
+    - name: Install static_config
+      copy: src=../files/static_config dest=/opt/couchbase/etc/couchbase/static_config owner=couchbase group=couchbase mode=0644

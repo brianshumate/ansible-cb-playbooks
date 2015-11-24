@@ -1,0 +1,13 @@
+---
+# File: _install_ssh_key.yml
+# Example Ansible playbook to install SSH public key into Vagrant user's
+# ~/.ssh/authorized_keys
+
+- hosts: cluster_nodes
+  sudo: True
+  vars:
+    ssh_public_key: "{{ lookup('file', '/Users/CHANGEME/.ssh/id_rsa.pub') }}"
+    host_username: vagrant
+  tasks:
+    - name: Install authorized key
+      authorized_key: user="{{ host_username }}" key="{{ ssh_public_key }}"

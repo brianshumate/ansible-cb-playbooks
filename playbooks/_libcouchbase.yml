@@ -1,0 +1,52 @@
+---
+# File: _libcouchbase.yml
+# Example Ansible playbook to install libcouchbase and dependencies
+
+- hosts: cluster_nodes
+  sudo: True
+  vars:
+    couchbase_server_debian_lcb_deps:
+      - build-essential
+      - libcouchbase2-core
+      - libcouchbase-dev
+      - libcouchbase2-bin
+      - libcouchbase2-libevent
+      - libcouchbase2-libev
+
+    couchbase_server_rhel_lcb_deps:
+      - "@Development"
+      - libcouchbase2-core
+      - libcouchbase-devel
+      - libcouchbase2-bin
+      - libcouchbase2-libevent
+      - libcouchbase2-libev
+
+  tasks:
+
+  - name: Get signing key
+    get_url: "url=http://packages.couchbase.com/ubuntu/couchbase.key dest=/tmp/couchbase.key sha256sum=3e6f3efb1b31670982e0d02c58e88ff947581c3185336aa00eea02267368529d"
+
+  - name: Add signing key
+    apt_key: "file=/tmp/couchbase.key state=present"
+
+  - name: Setup libcouchbase repo
+    template: "src=../files/_rhel_repo.j2 dest=/etc/yum.repos.d/couchbase.repo"
+    when: ansible_os_family == "RedHat"
+
+  - name: Setup libcouchbase repo
+    copy: "src=_deb_repo.j2 dest=/etc/apt/sources.list.d/couchbase.list"
+    when: ansible_distribution == "Debian"
+
+  - name: Setup libcouchbase repo
+    copy: "src=../files/_ubuntu_repo.j2 dest=/etc/apt/sources.list.d/couchbase.list"
+    when: ansible_distribution == "Ubuntu"
+
+  - name: Install libcouchbase dependencies
+    apt: "name={{ item }} state=latest update_cache=yes"
+    with_items: couchbase_server_debian_lcb_deps
+    when: ansible_os_family == "Debian"
+
+  - name: Install libcouchbase dependencies
+    yum: "name={{ item }} state=latest"
+    with_items: couchbase_server_rhel_lcb_deps
+    when: ansible_os_family == "RedHat"

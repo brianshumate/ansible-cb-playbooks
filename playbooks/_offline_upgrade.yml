@@ -1,0 +1,42 @@
+---
+# File: _offline_upgrade.yml
+#       Playbook for performing an offline upgrade of Couchbase Server
+
+- hosts: cluster_nodes
+  sudo: True
+  vars:
+    couchbase_server_local_package: true
+    couchbase_server_centos_ee_version: 4.0.0
+    couchbase_server_centos_ee_package: couchbase-server-enterprise-{{ couchbase_server_centos_ee_version }}-centos6.x86_64.rpm
+    couchbase_server_centos_ee_url: http://packages.couchbase.com/releases/{{ couchbase_server_centos_ee_version }}/{{ couchbase_server_centos_ee_package }}
+    couchbase_server_centos_ee_sha256: 62281d586e7414caebe419fcbf9ff51c36ba4b72e17451dbaa985cf8418fffd0
+
+  tasks:
+
+  - name: Copy package
+    copy: "src=../files/{{ couchbase_server_centos_ee_package }} dest=/tmp/{{ couchbase_server_centos_ee_package }}"
+    when: couchbase_server_local_package == true
+    tags: installation
+
+  - name: Download package
+    get_url: "url={{ couchbase_server_centos_ee_url }} dest=/tmp/{{ couchbase_server_centos_ee_package }} sha256sum={{ couchbase_server_centos_ee_sha256 }} timeout=240"
+    when: couchbase_server_local_package != true
+    tags: installation
+
+  - name: Stop Couchbase Server
+    sudo: True
+    service: name=couchbase-server state=stopped
+
+  - name: Upgrade package
+    sudo: True
+    shell: "rpm -Uvh /tmp/{{ couchbase_server_centos_ee_package }}"
+    tags: installation
+
+  - name: Package file cleanup
+    sudo: True
+    file: "dest=/tmp/{{ couchbase_server_centos_ee_package }} state=absent"
+    tags: installation
+
+  - name: Start Couchbase Server
+    sudo: True
+    service: name=couchbase-server state=started

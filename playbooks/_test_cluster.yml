@@ -1,0 +1,139 @@
+---
+# File: _test_cluster.yml - Example Couchbase Server playbook
+#       This playbook installs Couchbase Server, creates a cluster,
+#       creates a bucket, and loads the bucket with example JSON items
+
+- name: Rebalance test
+  hosts: cluster_nodes
+  sudo: True
+  roles:
+     - role: couchbase.couchbase-server
+
+- name: Cluster roles
+  hosts: cluster_nodes
+  sudo: True
+  gather_facts: False
+  tasks:
+
+  - name: Create cluster grouping
+    group_by: key={{ couchbase_server_node_role }}
+
+- name: Initialize cluster
+  hosts: primary
+  sudo: True
+  gather_facts: False
+  vars_files:
+    - ../defaults/main.yml
+  vars:
+    couchbase_server_primary_node: "{{hostvars[groups['primary'][0]]['ansible_fqdn']}}"
+  tasks:
+
+  - name: Get major version
+    shell: cat /opt/couchbase/VERSION.txt | cut -d '.' -f1
+    register: cb_major_version
+
+  - name: Wait for Admin
+    wait_for: "port={{ couchbase_server_admin_port }} delay=5"
+
+  - name: Configure cluster settings
+    shell: "{{ couchbase_server_bin_path }}/couchbase-cli cluster-init -c {{ couchbase_server_primary_node }}:{{ couchbase_server_admin_port }} --user={{ couchbase_server_admin }} --password={{ couchbase_server_password }} --cluster-init-username={{ couchbase_server_admin }} --cluster-init-password={{ couchbase_server_password }} --cluster-init-port={{couchbase_server_admin_port}} --cluster-init-ramsize={{ couchbase_server_ram }}"
+
+#  - name: Wait for Admin
+#    wait_for: "port={{ couchbase_server_admin_port }} delay=10"
+
+  - name: Initialize primary node
+    shell: "{{ couchbase_server_bin_path }}/couchbase-cli node-init -c {{ couchbase_server_primary_node }}:{{ couchbase_server_admin_port }} --user={{ couchbase_server_admin }} --password={{ couchbase_server_password }} --cluster-init-username={{ couchbase_server_admin }} --node-init-hostname={{ ansible_fqdn }}"
+    when: cb_major_version['stdout'] != 2
+
+
+- hosts: additional
+  sudo: True
+  gather_facts: False
+  vars_files:
+    - ../defaults/main.yml
+  tasks:
+
+  - name: Get major version
+    shell: cat /opt/couchbase/VERSION.txt | cut -d '.' -f1
+    register: cb_major_version
+
+  - name: Wait for Admin
+    wait_for: "port={{ couchbase_server_admin_port }} delay=5"
+
+  - name: Configure cluster settings
+    shell: "{{ couchbase_server_home_path }}/bin/couchbase-cli cluster-init -c {{ ansible_fqdn }}:{{ couchbase_server_admin_port }} --user={{ couchbase_server_admin }} --password={{ couchbase_server_password }} --cluster-init-username={{ couchbase_server_admin }} --cluster-init-password={{ couchbase_server_password }} --cluster-init-port={{couchbase_server_admin_port}} --cluster-init-ramsize={{ couchbase_server_ram }}"
+
+#  - name: Wait for Admin
+#    wait_for: "port={{ couchbase_server_admin_port }} delay=10"
+
+  - name: Initialize additional node
+    shell: "{{ couchbase_server_home_path }}/bin/couchbase-cli node-init -c {{ ansible_fqdn }}:{{ couchbase_server_admin_port }} --user={{ couchbase_server_admin }} --password={{ couchbase_server_password }} --cluster-init-username={{ couchbase_server_admin }} --node-init-hostname={{ ansible_fqdn }}"
+    when: cb_major_version['stdout'] != 2
+
+- hosts: primary
+  sudo: True
+  gather_facts: False
+  vars_files:
+    - ../defaults/main.yml
+  vars:
+    couchbase_server_primary_node: "{{hostvars[groups['primary'][0]]['ansible_fqdn']}}"
+  tasks:
+
+  - name: Create cluster grouping
+    group_by: key={{ couchbase_server_node_role }}
+
+  - name: Get major version
+    shell: cat /opt/couchbase/VERSION.txt | cut -d '.' -f1
+    register: cb_major_version
+
+  - name: Join additional cluster nodes
+    shell: "{{ couchbase_server_home_path }}/bin/couchbase-cli server-add -c {{ couchbase_server_primary_node }}:{{ couchbase_server_admin_port }} --user={{ couchbase_server_admin }} --password={{ couchbase_server_password }} --server-add={{hostvars[[item][0]]['inventory_hostname']}}:{{ couchbase_server_admin_port }} --server-add-username={{ couchbase_server_admin }} --server-add-password={{ couchbase_server_password }}"
+    with_items: groups['additional']
+
+  - name: Rebalance cluster
+    shell: "{{ couchbase_server_home_path }}/bin/couchbase-cli rebalance -c {{ couchbase_server_primary_node }}:{{ couchbase_server_admin_port }} --user={{ couchbase_server_admin }} --password={{ couchbase_server_password }}"
+
+- name: Create bucket
+  hosts: primary
+  sudo: False
+  vars_files:
+    - ../defaults/main.yml
+  vars:
+    couchbase_server_primary_node: "{{hostvars[groups['primary'][0]]['inventory_hostname']}}"
+    couchbase_server_bucket_name: default
+    couchbase_server_bucket_type: couchbase
+    couchbase_server_bucket_ram: 256
+    couchbase_server_bucket_port: 11211
+    couchbase_server_bucket_replica: 1
+  tasks:
+
+    - name: Verify node health
+      shell: "{{ couchbase_server_bin_path }}/couchbase-cli server-list -c {{ couchbase_server_primary_node }}:{{ couchbase_server_admin_port }} --user={{ couchbase_server_admin }} --password={{ couchbase_server_password }} | awk '/{{ ansible_fqdn }}:{{ couchbase_server_admin_port }}/ {print $3}'"
+      register: couchbase_server_health
+      failed_when: couchbase_server_health['stdout'] != "healthy"
+
+    - name: Create new bucket
+      shell: "{{ couchbase_server_bin_path }}/couchbase-cli bucket-create -c {{ ansible_fqdn }}:{{ couchbase_server_admin_port }} --user={{ couchbase_server_admin }} --password={{ couchbase_server_password }} --bucket={{ couchbase_server_bucket_name }} --bucket-type={{ couchbase_server_bucket_type }} --bucket-port={{ couchbase_server_bucket_port }} --bucket-ramsize={{ couchbase_server_bucket_ram }} --bucket-replica={{ couchbase_server_bucket_replica }}"
+      when: couchbase_server_health['stdout'] == "healthy"
+
+- hosts: primary
+  sudo: False
+  vars:
+    couchbase_server_primary_node: "{{hostvars[groups['primary'][0]]['inventory_hostname']}}"
+    couchbase_server_bucket_name: default
+    couchbase_server_bucket_item_count: 9001
+    couchbase_server_bucket_item_size: 256
+  vars_files:
+    - ../defaults/main.yml
+  tasks:
+
+    - name: Verify bucket warmup
+      shell: "{{ couchbase_server_bin_path }}/cbstats localhost:11210 warmup | awk '/ep_warmup_state:/ {print $2}'"
+      register: couchbase_server_warmup
+
+    - name: Wait for bucket
+      wait_for: port=8091 delay=5
+
+    - name: Load bucket with sample JSON items
+      shell: "{{ couchbase_server_bin_path }}/cbworkloadgen -n {{ couchbase_server_primary_node }}:{{ couchbase_server_admin_port }} -i {{ couchbase_server_bucket_item_count }} -s {{ couchbase_server_bucket_item_size }} -j -b {{ couchbase_server_bucket_name }} -u {{ couchbase_server_admin }} -p {{ couchbase_server_password }}"
+      when: couchbase_server_warmup['stdout'] == "done"

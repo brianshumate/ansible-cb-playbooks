@@ -30,7 +30,7 @@
     apt_key: "file=/tmp/couchbase.key state=present"
 
   - name: Setup libcouchbase repo
-    template: "src=../files/_rhel_repo.j2 dest=/etc/yum.repos.d/couchbase.repo"
+    template: "src=_rhel_repo.j2 dest=/etc/yum.repos.d/couchbase.repo"
     when: ansible_os_family == "RedHat"
 
   - name: Setup libcouchbase repo
@@ -38,7 +38,7 @@
     when: ansible_distribution == "Debian"
 
   - name: Setup libcouchbase repo
-    copy: "src=../files/_ubuntu_repo.j2 dest=/etc/apt/sources.list.d/couchbase.list"
+    copy: "src=_ubuntu_repo.j2 dest=/etc/apt/sources.list.d/couchbase.list"
     when: ansible_distribution == "Ubuntu"
 
   - name: Install libcouchbase dependencies

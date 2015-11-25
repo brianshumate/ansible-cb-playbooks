@@ -7,4 +7,4 @@
 
   tasks:
     - name: Install static_config
-      copy: src=../files/static_config dest=/opt/couchbase/etc/couchbase/static_config owner=couchbase group=couchbase mode=0644
+      copy: src=static_config dest=/opt/couchbase/etc/couchbase/static_config owner=couchbase group=couchbase mode=0644

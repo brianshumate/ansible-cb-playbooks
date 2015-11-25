@@ -1,7 +1,9 @@
 ---
 # File: _offline_upgrade.yml
 #       Playbook for performing an offline upgrade of Couchbase Server
-
+#       NB: file described by couchbase_server_*_*_package needs to be
+#       downloaded and copied into the role's files directory first
+#
 - hosts: cluster_nodes
   sudo: True
   vars:

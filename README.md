@@ -3,7 +3,9 @@
 These are random Ansible playbooks for use with Couchbase Server.
 
 The playbooks perform time saving tasks focused on operating clusters for the
-purposes of development and troubleshooting.
+purposes of development and troubleshooting. If you are looking for a top
+level role for Couchbase Server, check out the 
+[ansible-couchbase-server](https://github.com/couchbaselabs/ansible-couchbase-server) project.
 
 
 | Playbook | Description |

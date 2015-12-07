@@ -1,19 +1,26 @@
 ---
 # File: _cbcollect_deps.yml
 # Example Ansible playbook to install additional dependencies to enhance
-# reporting by Couchbase Server cbcollect_info utility 
+# reporting by Couchbase Server cbcollect_info utility, 
+# facilitate troubleshooting, and help in issue resolution
 
 - hosts: cluster_nodes
   sudo: True
   vars:
     couchbase_server_debian_cbcollect_deps:
+      - atop
+      - curl
       - lshw
       - lsof
       - netcat
       - numactl
       - sysstat
+      - sqlite
+      - tcpdump
     couchbase_server_rhel_cbcollect_deps:
+      - atop
       - bind-utils
+      - curl
       - lshw
       - lsof
       - nc
@@ -21,6 +28,7 @@
       - numactl
       - redhat-lsb-core
       - sysstat
+      - tcpdump
   tasks:
   - name: Install cbcollect_info dependencies
     apt: "name={{ item }} state=latest"

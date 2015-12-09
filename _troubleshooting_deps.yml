@@ -1,7 +1,7 @@
 ---
 # File: _cbcollect_deps.yml
 # Example Ansible playbook to install additional dependencies to enhance
-# reporting by Couchbase Server cbcollect_info utility, 
+# reporting by Couchbase Server cbcollect_info utility,
 # facilitate troubleshooting, and help in issue resolution
 
 - hosts: cluster_nodes
@@ -31,7 +31,7 @@
       - tcpdump
   tasks:
   - name: Install cbcollect_info dependencies
-    apt: "name={{ item }} state=latest"
+    apt: "name={{ item }} state=latest update_cache=yes"
     with_items: couchbase_server_debian_cbcollect_deps
     when: ansible_os_family == "Debian"
 
